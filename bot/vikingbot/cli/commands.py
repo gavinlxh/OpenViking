@@ -234,6 +234,7 @@ def gateway(
         True, "--agent/--no-agent", help="Enable agent loop for OpenAPI/chat"
     ),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Verbose output"),
+    config_path: str = typer.Option(None, "--config-path", "-p", help="ov.conf path"),
 ):
     """Start the vikingbot gateway with OpenAPI chat enabled by default."""
 
@@ -243,7 +244,8 @@ def gateway(
         logging.basicConfig(level=logging.DEBUG)
 
     bus = MessageBus()
-    config = ensure_config()
+    path = Path(config_path).expanduser() if config_path is not None else None
+    config = ensure_config(path)
     _init_bot_data(config)
     session_manager = SessionManager(config.bot_data_path)
 
