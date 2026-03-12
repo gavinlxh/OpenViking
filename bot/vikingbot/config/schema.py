@@ -38,11 +38,13 @@ class SandboxMode(str, Enum):
 
     PER_SESSION = "per-session"
     SHARED = "shared"
+    PER_CHANNEL = "per-channel"
 
 class AgentMemoryMode(str, Enum):
     """Agent memory mode enumeration."""
     PER_SESSION = "per-session"
     SHARED = "shared"
+    PER_CHANNEL = "per-channel"
 
 
 class BaseChannelConfig(BaseModel):
