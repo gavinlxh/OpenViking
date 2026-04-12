@@ -19,7 +19,7 @@ const SENDER_METADATA_BLOCK_RE = /Sender\s*\([^)]*\)\s*:\s*```[\s\S]*?```/gi;
 const FENCED_JSON_BLOCK_RE = /```json\s*([\s\S]*?)```/gi;
 const METADATA_JSON_KEY_RE =
   /"(session|sessionid|sessionkey|conversationid|channel|sender|userid|agentid|timestamp|timezone)"\s*:/gi;
-const LEADING_TIMESTAMP_PREFIX_RE = /^\s*\[[^\]\n]{1,120}\]\s*/;
+const LEADING_TIMESTAMP_PREFIX_RE = /^\s*(?!\[\[)\[(?:(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)[a-z]*\s+)?(?:\d{4}[-/]\d{2}[-/]\d{2}|\d{2}[-/]\d{2}[-/]\d{2,4})(?:\s+\d{1,2}:\d{2}(?::\d{2})?(?:\s*[A-Z]{1,5}(?:[+-]\d{1,2})?)?)?\s*\]\s*/i;
 const COMPACTED_SYSTEM_MSG_RE = /^System:\s*\[.*?\]\s*Compacted/i;
 const COMMAND_TEXT_RE = /^\/[a-z0-9_-]{1,64}\b/i;
 const NON_CONTENT_TEXT_RE = /^[\p{P}\p{S}\s]+$/u;
@@ -512,6 +512,28 @@ export function extractNewTurnMessages(
   const result: ExtractedMessage[] = [];
   let count = 0;
 
+  // First pass: collect toolUse inputs indexed by toolCallId/toolUseId
+  const toolUseInputs: Record<string, Record<string, unknown>> = {};
+  for (let i = 0; i < startIndex && i < messages.length; i++) {
+    const msg = messages[i] as Record<string, unknown>;
+    if (!msg || typeof msg !== "object") continue;
+    const role = msg.role as string;
+    if (role === "assistant") {
+      const content = msg.content;
+      if (Array.isArray(content)) {
+        for (const block of content) {
+          const b = block as Record<string, unknown>;
+          if (b?.type === "toolUse" || b?.type === "tool_call") {
+            const id = (b.id as string) || (b.toolUseId as string) || (b.toolCallId as string);
+            if (id && b.input) {
+              toolUseInputs[id] = b.input as Record<string, unknown>;
+            }
+          }
+        }
+      }
+    }
+  }
+
   for (let i = startIndex; i < messages.length; i++) {
     const msg = messages[i] as Record<string, unknown>;
     if (!msg || typeof msg !== "object") continue;
@@ -525,10 +547,13 @@ export function extractNewTurnMessages(
     if (role === "toolResult") {
       const toolName = typeof msg.toolName === "string" ? msg.toolName : "tool";
       const output = formatToolResultContent(msg.content) || "";
-      // tool_input 可能来自 toolUse 消息
-      const toolInput = typeof msg.toolInput === "object" && msg.toolInput !== null
-        ? msg.toolInput as Record<string, unknown>
-        : undefined;
+      // Try to find tool_input from toolUse by toolCallId/toolUseId
+      const toolCallId = (msg.toolCallId as string) || (msg.toolUseId as string);
+      const toolInput = toolCallId && toolUseInputs[toolCallId]
+        ? toolUseInputs[toolCallId]
+        : (typeof msg.toolInput === "object" && msg.toolInput !== null
+          ? msg.toolInput as Record<string, unknown>
+          : undefined);
       if (output) {
         result.push({
           role: "user",
