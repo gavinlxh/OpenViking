@@ -525,8 +525,10 @@ export function extractNewTurnMessages(
           const b = block as Record<string, unknown>;
           if (b?.type === "toolUse" || b?.type === "tool_call") {
             const id = (b.id as string) || (b.toolUseId as string) || (b.toolCallId as string);
-            if (id && b.input) {
-              toolUseInputs[id] = b.input as Record<string, unknown>;
+            // Try multiple field names for tool input
+            const input = b.input ?? b.arguments ?? b.toolInput;
+            if (id && input && typeof input === "object") {
+              toolUseInputs[id] = input as Record<string, unknown>;
             }
           }
         }
@@ -547,8 +549,8 @@ export function extractNewTurnMessages(
     if (role === "toolResult") {
       const toolName = typeof msg.toolName === "string" ? msg.toolName : "tool";
       const output = formatToolResultContent(msg.content) || "";
-      // Try to find tool_input from toolUse by toolCallId/toolUseId
-      const toolCallId = (msg.toolCallId as string) || (msg.toolUseId as string);
+      // Try multiple field names for tool call ID
+      const toolCallId = (msg.toolCallId as string) || (msg.toolUseId as string) || (msg.tool_call_id as string);
       const toolInput = toolCallId && toolUseInputs[toolCallId]
         ? toolUseInputs[toolCallId]
         : (typeof msg.toolInput === "object" && msg.toolInput !== null
