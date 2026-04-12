@@ -492,6 +492,7 @@ export type ExtractedMessage = {
   } | {
     type: "tool";
     toolName: string;
+    toolInput?: Record<string, unknown>;
     toolOutput: string;
     toolStatus: string;
   }>;
@@ -524,12 +525,17 @@ export function extractNewTurnMessages(
     if (role === "toolResult") {
       const toolName = typeof msg.toolName === "string" ? msg.toolName : "tool";
       const output = formatToolResultContent(msg.content) || "";
+      // tool_input 可能来自 toolUse 消息
+      const toolInput = typeof msg.toolInput === "object" && msg.toolInput !== null
+        ? msg.toolInput as Record<string, unknown>
+        : undefined;
       if (output) {
         result.push({
           role: "user",
           parts: [{
             type: "tool",
             toolName,
+            toolInput,
             toolOutput: output,
             toolStatus: "completed",
           }],

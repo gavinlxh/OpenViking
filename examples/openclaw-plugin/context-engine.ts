@@ -884,6 +884,7 @@ export function createMemoryOpenVikingContextEngine(params: {
               return {
                 type: "tool" as const,
                 tool_name: part.toolName,
+                tool_input: part.toolInput,
                 tool_output: part.toolOutput,
                 tool_status: part.toolStatus,
               };
