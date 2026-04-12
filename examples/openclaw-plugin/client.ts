@@ -375,47 +375,11 @@ export class OpenVikingClient {
     );
   }
 
-  async addSessionMessage(
-    sessionId: string,
-    role: string,
-    content: string,
-    agentId?: string,
-    createdAt?: string,
-  ): Promise<void> {
-    const body: {
-      role: string;
-      content: string;
-      created_at?: string;
-    } = { role, content };
-    if (createdAt) {
-      body.created_at = createdAt;
-    }
-    await this.emitRoutingDebug(
-      "session message POST",
-      {
-        path: `/api/v1/sessions/${encodeURIComponent(sessionId)}/messages`,
-        sessionId,
-        role,
-        contentChars: content.length,
-        created_at: createdAt ?? null,
-      },
-      agentId,
-    );
-    await this.request<{ session_id: string }>(
-      `/api/v1/sessions/${encodeURIComponent(sessionId)}/messages`,
-      {
-        method: "POST",
-        body: JSON.stringify(body),
-      },
-      agentId,
-    );
-  }
-
   /**
    * Add a message with parts (text, tool, context).
    * Used for sending structured messages with multiple part types.
    */
-  async addSessionMessageWithParts(
+  async addSessionMessage(
     sessionId: string,
     role: string,
     parts: Array<{

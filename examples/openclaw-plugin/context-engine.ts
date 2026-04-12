@@ -891,7 +891,7 @@ export function createMemoryOpenVikingContextEngine(params: {
           });
 
           if (ovParts.length > 0) {
-            await client.addSessionMessageWithParts(
+            await client.addSessionMessage(
               OVSessionId,
               msg.role, // 统一是 "user"
               ovParts,
