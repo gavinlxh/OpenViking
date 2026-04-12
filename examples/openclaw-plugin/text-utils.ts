@@ -47,7 +47,13 @@ function looksLikeMetadataJsonBlock(content: string): boolean {
   return matchedKeys.size >= 3;
 }
 
+const HEARTBEAT_RE = /\bHEARTBEAT(?:\.md|_OK)\b/;
+
 export function sanitizeUserTextForCapture(text: string): string {
+  // 过滤 HEARTBEAT 健康检查消息
+  if (HEARTBEAT_RE.test(text)) {
+    return "";
+  }
   // 处理 Compactor 系统消息，提取实际用户输入
   // 格式: "System: [时间] Compacted ... Context ... [时间] 实际内容"
   if (COMPACTED_SYSTEM_MSG_RE.test(text)) {
